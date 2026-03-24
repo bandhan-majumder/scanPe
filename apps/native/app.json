@@ -20,7 +20,8 @@
 			},
 			"edgeToEdgeEnabled": true,
 			"predictiveBackGestureEnabled": false,
-			"package": "com.anonymous.mybettertapp"
+			"package": "com.anonymous.mybettertapp",
+			"permissions": ["READ_SMS", "RECEIVE_SMS"]
 		},
 		"web": {
 			"output": "static",

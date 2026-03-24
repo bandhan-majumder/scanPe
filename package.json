@@ -29,12 +29,17 @@
 		"db:generate": "turbo -F @scanPe/db db:generate",
 		"db:migrate": "turbo -F @scanPe/db db:migrate",
 		"check": "biome check --write .",
-		"prepare": "husky"
+		"prepare": "husky",
+		"android": "expo run:android",
+		"ios": "expo run:ios"
 	},
 	"dependencies": {
 		"@scanPe/env": "workspace:*",
 		"dotenv": "catalog:",
-		"zod": "catalog:"
+		"zod": "catalog:",
+		"expo": "~54.0.33",
+		"react": "19.1.0",
+		"react-native": "0.81.5"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.2.0",
@@ -50,5 +55,6 @@
 			"biome check --write ."
 		]
 	},
-	"packageManager": "bun@1.2.19"
+	"packageManager": "bun@1.2.19",
+	"version": "1.0.0"
 }

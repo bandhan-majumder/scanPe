@@ -1,0 +1,8 @@
+{
+	"android": {
+		"package": "com.anonymous.scanpe"
+	},
+	"ios": {
+		"bundleIdentifier": "com.anonymous.scanpe"
+	}
+}

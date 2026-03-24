@@ -1,15 +1,68 @@
 import { Feather } from "@expo/vector-icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { Redirect, Tabs } from "expo-router";
-import { TouchableOpacity, View } from "react-native";
-
+import { useCallback, useEffect, useRef } from "react";
+import { Alert, Platform, TouchableOpacity, View } from "react-native";
+import { useCreateTransaction } from "@/lib/api/transactions";
 import { authClient } from "@/lib/auth-client";
 import { NAV_THEME } from "@/lib/constants";
+import { useI18n } from "@/lib/i18n/i18n-provider";
+import { startSmsListener, stopSmsListener } from "@/lib/sms-listener";
 import { useColorScheme } from "@/lib/theme-provider";
+
+// ID of the default "Others" category (from seed data)
+const OTHERS_CATEGORY_ID = "others";
 
 export default function AppLayout() {
 	const { isDarkColorScheme } = useColorScheme();
 	const theme = isDarkColorScheme ? NAV_THEME.dark : NAV_THEME.light;
 	const { data: session, isPending } = authClient.useSession();
+	const { t } = useI18n();
+	const createTransaction = useCreateTransaction();
+	const queryClient = useQueryClient();
+	const hasStartedRef = useRef(false);
+
+	const handleSmsTransaction = useCallback(
+		(data: { amount: number; merchant: string; description: string }) => {
+			if (Platform.OS !== "android") return;
+
+			createTransaction.mutate(
+				{
+					amount: data.amount,
+					merchant: data.merchant.slice(0, 200),
+					description: data.description,
+					categoryId: OTHERS_CATEGORY_ID,
+				},
+				{
+					onSuccess: () => {
+						queryClient.invalidateQueries({ queryKey: ["transactions"] });
+						Alert.alert(
+							t("sms.transactionAdded"),
+							`₹${data.amount.toFixed(2)}`,
+						);
+					},
+				},
+			);
+		},
+		[createTransaction, queryClient, t],
+	);
+
+	useEffect(() => {
+		if (session?.user && !hasStartedRef.current && Platform.OS === "android") {
+			hasStartedRef.current = true;
+			const started = startSmsListener(handleSmsTransaction);
+			if (started) {
+				console.log("[App] SMS listener started");
+			}
+		}
+
+		return () => {
+			if (hasStartedRef.current) {
+				stopSmsListener();
+				hasStartedRef.current = false;
+			}
+		};
+	}, [session?.user, handleSmsTransaction]);
 
 	if (isPending) {
 		return null;

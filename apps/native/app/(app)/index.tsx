@@ -14,64 +14,52 @@ import { Container } from "@/components/container";
 import { SpendingAlert } from "@/components/spending-alert";
 import { TransactionItem } from "@/components/transaction-item";
 import { useBudgets } from "@/lib/api/budgets";
+import { useTransactions } from "@/lib/api/transactions";
 import { authClient } from "@/lib/auth-client";
 import { useI18n } from "@/lib/i18n/i18n-provider";
 import { useColorScheme } from "@/lib/theme-provider";
 import { DEFAULT_AVATAR } from "./profile";
 
-// Mock transaction data
-const transactions = [
-	{
-		id: "1",
-		merchant: "Starbucks Reserve",
-		category: "Coffee",
-		amount: 12.5,
-		time: "Today, 9:41 AM",
-		icon: "coffee",
-		iconColor: "#92400E",
-		iconBgColor: "#FEF3C7",
+const toDisplayTransaction = (
+	tx: {
+		id: string;
+		merchant: string;
+		amount: number;
+		createdAt: string;
+		budget?: {
+			category?: { name?: string; icon?: string; color?: string };
+		} | null;
 	},
-	{
-		id: "2",
-		merchant: "Whole Foods Market",
-		category: "Groceries",
-		amount: 84.2,
-		time: "Yesterday, 6:30 PM",
-		icon: "shopping-bag",
-		iconColor: "#065F46",
-		iconBgColor: "#D1FAE5",
-	},
-	{
-		id: "3",
-		merchant: "Uber",
-		category: "Transport",
-		amount: 24.0,
-		time: "Yesterday, 8:15 AM",
-		icon: "navigation",
-		iconColor: "#1E40AF",
-		iconBgColor: "#DBEAFE",
-	},
-	{
-		id: "4",
-		merchant: "Netflix",
-		category: "Entertainment",
-		amount: 15.99,
-		time: "Jan 5, 8:00 PM",
-		icon: "film",
-		iconColor: "#991B1B",
-		iconBgColor: "#FEE2E2",
-	},
-	{
-		id: "5",
-		merchant: "Amazon",
-		category: "Shopping",
-		amount: 45.67,
-		time: "Jan 4, 3:20 PM",
-		icon: "package",
-		iconColor: "#7C3AED",
-		iconBgColor: "#EDE9FE",
-	},
-];
+	t: (key: string) => string,
+) => {
+	const created = new Date(tx.createdAt);
+	const today = new Date().toISOString().split("T")[0];
+	const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+	const txDate = created.toISOString().split("T")[0];
+
+	let time = created.toLocaleTimeString("en-US", {
+		hour: "numeric",
+		minute: "2-digit",
+	});
+	if (txDate === today) {
+		time = `${t("transactions.today")}, ${time}`;
+	} else if (txDate === yesterday) {
+		time = `${t("transactions.yesterday")}, ${time}`;
+	} else {
+		time = `${created.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${time}`;
+	}
+
+	return {
+		id: tx.id,
+		merchant: tx.merchant,
+		category: tx.budget?.category?.name ?? "Others",
+		amount: tx.amount,
+		time,
+		icon: tx.budget?.category?.icon ?? "more-horizontal",
+		iconColor: tx.budget?.category?.color ?? "#6B7280",
+		iconBgColor: `${tx.budget?.category?.color ?? "#6B7280"}20`,
+	};
+};
 
 export default function Home() {
 	const { colorScheme } = useColorScheme();
@@ -86,6 +74,11 @@ export default function Home() {
 
 	// Fetch real budget data from API
 	const { data: budgets } = useBudgets();
+	const { data: apiTransactions } = useTransactions(5);
+
+	// Map API transactions to display format
+	const recentTransactions =
+		apiTransactions?.map((tx) => toDisplayTransaction(tx, t)) ?? [];
 
 	// Calculate totals for the selected period across all categories
 	const periodBudgets = budgets?.filter((b) => b.period === period) || [];
@@ -179,7 +172,7 @@ export default function Home() {
 
 					{/* Transaction List */}
 					<FlatList
-						data={transactions}
+						data={recentTransactions}
 						keyExtractor={(item) => item.id}
 						renderItem={({ item }) => (
 							<TransactionItem transaction={item} isDark={isDark} />
