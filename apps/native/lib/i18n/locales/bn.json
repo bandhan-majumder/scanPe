@@ -95,6 +95,11 @@
 		"title": "খরচ সতর্কতা",
 		"message": "আপনি আপনার দৈনিক বাজেটের {{percentage}}% খরচ করেছেন। দিন শেষ করতে ধীরে যান!"
 	},
+	"sms": {
+		"transactionAdded": "SMS থেকে লেনদেন যোগ করা হয়েছে",
+		"listening": "SMS মনিটরিং সক্রিয়",
+		"permissionDenied": "SMS অনুমতি অস্বীকৃত। স্বয়ংক্রিয় পেমেন্ট সনাক্ত করতে সেটিংসে সক্ষম করুন।"
+	},
 	"language": {
 		"selectLanguage": "ভাষা নির্বাচন",
 		"english": "English",

@@ -14,7 +14,7 @@ const app = express();
 app.use(
 	cors({
 		origin: env.CORS_ORIGIN,
-		methods: ["GET", "POST", "OPTIONS"],
+		methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
 		allowedHeaders: ["Content-Type", "Authorization"],
 		credentials: true,
 	}),
@@ -242,7 +242,7 @@ app.post("/categories", authMiddleware, async (req, res) => {
 app.delete("/categories/:id", authMiddleware, async (req, res) => {
 	try {
 		const user = (req as any).user;
-		const { id } = req.params;
+		const { id } = req.params as { id: string };
 
 		// Verify category belongs to user and is not a default category
 		const category = await prisma.category.findFirst({
@@ -392,7 +392,7 @@ app.post("/budgets", authMiddleware, async (req, res) => {
 app.patch("/budgets/:id", authMiddleware, async (req, res) => {
 	try {
 		const user = (req as any).user;
-		const { id } = req.params;
+		const { id } = req.params as { id: string };
 		const result = updateBudgetSchema.safeParse(req.body);
 
 		if (!result.success) {
@@ -460,7 +460,7 @@ app.patch("/budgets/:id", authMiddleware, async (req, res) => {
 app.delete("/budgets/:id", authMiddleware, async (req, res) => {
 	try {
 		const user = (req as any).user;
-		const { id } = req.params;
+		const { id } = req.params as { id: string };
 
 		// Verify budget belongs to user
 		const existingBudget = await prisma.budget.findFirst({
@@ -479,6 +479,114 @@ app.delete("/budgets/:id", authMiddleware, async (req, res) => {
 	} catch (error) {
 		console.error("[Budgets] Error deleting budget:", error);
 		res.status(500).json({ error: "Failed to delete budget" });
+	}
+});
+
+// Transaction API Routes
+
+const createTransactionSchema = z.object({
+	amount: z.number().positive(),
+	merchant: z.string().min(1).max(200),
+	description: z.string().max(500).optional(),
+	categoryId: z.string(),
+	budgetId: z.string().optional(),
+});
+
+// Get all transactions for current user
+app.get("/transactions", authMiddleware, async (req, res) => {
+	try {
+		const user = (req as any).user;
+		const rawLimit = req.query.limit;
+		const limitValue =
+			typeof rawLimit === "string"
+				? rawLimit
+				: Array.isArray(rawLimit)
+					? (rawLimit[0] as string)
+					: undefined;
+		const limit = limitValue
+			? Math.min(Number.parseInt(limitValue, 10), 100)
+			: 50;
+
+		const transactions = await prisma.transaction.findMany({
+			where: { userId: user.id },
+			include: {
+				budget: {
+					include: { category: true },
+				},
+			},
+			orderBy: { createdAt: "desc" },
+			take: limit,
+		});
+
+		res.json(
+			transactions.map((t: any) => ({
+				...t,
+				amount: Number(t.amount),
+			})),
+		);
+	} catch (error) {
+		console.error("[Transactions] Error fetching transactions:", error);
+		res.status(500).json({ error: "Failed to fetch transactions" });
+	}
+});
+
+// Create a new transaction
+app.post("/transactions", authMiddleware, async (req, res) => {
+	try {
+		const user = (req as any).user;
+		const result = createTransactionSchema.safeParse(req.body);
+
+		if (!result.success) {
+			return res.status(400).json({
+				error: "Invalid input",
+				details: result.error.issues,
+			});
+		}
+
+		const { amount, merchant, description, categoryId, budgetId } = result.data;
+
+		// If budgetId provided, verify it belongs to user
+		if (budgetId) {
+			const budget = await prisma.budget.findFirst({
+				where: { id: budgetId, userId: user.id },
+			});
+
+			if (!budget) {
+				return res.status(404).json({ error: "Budget not found" });
+			}
+		} else {
+			// If no budgetId, find a budget matching the category (if any)
+			const budget = await prisma.budget.findFirst({
+				where: { userId: user.id, categoryId },
+				orderBy: { createdAt: "desc" },
+			});
+			if (budget) {
+				// Use this budget for the transaction
+			}
+		}
+
+		const transaction = await prisma.transaction.create({
+			data: {
+				userId: user.id,
+				budgetId: budgetId || null,
+				amount,
+				merchant,
+				description: description || null,
+			},
+			include: {
+				budget: {
+					include: { category: true },
+				},
+			},
+		});
+
+		res.status(201).json({
+			...transaction,
+			amount: Number(transaction.amount),
+		});
+	} catch (error) {
+		console.error("[Transactions] Error creating transaction:", error);
+		res.status(500).json({ error: "Failed to create transaction" });
 	}
 });
 

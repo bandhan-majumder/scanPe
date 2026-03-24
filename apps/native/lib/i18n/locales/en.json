@@ -120,6 +120,11 @@
 		"title": "Spending Alert",
 		"message": "You've used {{percentage}}% of your daily budget. Slow down to make it through the day!"
 	},
+	"sms": {
+		"transactionAdded": "Transaction added from SMS",
+		"listening": "SMS monitoring active",
+		"permissionDenied": "SMS permission denied. Enable in Settings to auto-detect payments."
+	},
 	"language": {
 		"selectLanguage": "Select Language",
 		"english": "English",

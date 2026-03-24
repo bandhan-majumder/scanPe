@@ -95,6 +95,11 @@
 		"title": "खर्च अलर्ट",
 		"message": "आपने अपने दैनिक बजट का {{percentage}}% खर्च कर लिया है। दिन पूरा करने के लिए धीमे हो जाएं!"
 	},
+	"sms": {
+		"transactionAdded": "SMS से लेन-देन जोड़ा गया",
+		"listening": "SMS मॉनिटरिंग सक्रिय",
+		"permissionDenied": "SMS अनुमति अस्वीकृत। भुगतान स्वचालित रूप से पहचानने के लिए सेटिंग्स में सक्षम करें।"
+	},
 	"language": {
 		"selectLanguage": "भाषा चुनें",
 		"english": "English",
